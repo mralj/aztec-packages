@@ -78,6 +78,7 @@ export async function makeTestP2PClient(
     store: kvStore,
     logger,
   };
+  const clientVersion = 'test-p2p-client';
   const client = await createP2PClient(
     P2PClientType.Full,
     config,
@@ -85,6 +86,7 @@ export async function makeTestP2PClient(
     proofVerifier,
     mockWorldState,
     mockEpochCache,
+    clientVersion,
     undefined,
     deps,
   );

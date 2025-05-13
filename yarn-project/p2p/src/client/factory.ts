@@ -37,6 +37,7 @@ export const createP2PClient = async <T extends P2PClientType>(
   proofVerifier: ClientProtocolCircuitVerifier,
   worldStateSynchronizer: WorldStateSynchronizer,
   epochCache: EpochCacheInterface,
+  packageVersion: string,
   telemetry: TelemetryClient = getTelemetryClient(),
   deps: P2PClientDeps<T> = {},
 ) => {
@@ -73,6 +74,7 @@ export const createP2PClient = async <T extends P2PClientType>(
     const discoveryService = new DiscV5Service(
       peerId,
       config,
+      packageVersion,
       telemetry,
       createLogger(`${logger.module}:discv5_service`),
     );

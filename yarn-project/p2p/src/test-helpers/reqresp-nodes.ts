@@ -10,7 +10,6 @@ import type { P2PClientType } from '@aztec/stdlib/p2p';
 import type { Tx } from '@aztec/stdlib/tx';
 import { type TelemetryClient, getTelemetryClient } from '@aztec/telemetry-client';
 
-import { SignableENR } from '@chainsafe/enr';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
@@ -19,12 +18,12 @@ import { identify } from '@libp2p/identify';
 import type { PeerId } from '@libp2p/interface';
 import { createSecp256k1PeerId } from '@libp2p/peer-id-factory';
 import { tcp } from '@libp2p/tcp';
-import { multiaddr } from '@multiformats/multiaddr';
 import getPort from 'get-port';
 import { type Libp2p, type Libp2pOptions, createLibp2p } from 'libp2p';
 
 import { BootstrapNode } from '../bootstrap/bootstrap.js';
 import type { BootnodeConfig, P2PConfig } from '../config.js';
+import { createBootnodeENRandPeerId } from '../enr/generate-enr.js';
 import type { MemPools } from '../mem_pools/interface.js';
 import { DiscV5Service } from '../services/discv5/discV5_service.js';
 import { LibP2PService } from '../services/libp2p/libp2p_service.js';
@@ -38,7 +37,7 @@ import {
 } from '../services/reqresp/interface.js';
 import { pingHandler, statusHandler } from '../services/reqresp/protocols/index.js';
 import { ReqResp } from '../services/reqresp/reqresp.js';
-import { type PubSubLibp2p, convertToMultiaddr, createLibP2PPeerIdFromPrivateKey } from '../util.js';
+import type { PubSubLibp2p } from '../util.js';
 
 /**
  * Creates a libp2p node, pre configured.
@@ -120,7 +119,8 @@ export async function createTestLibP2PService<T extends P2PClientType>(
     bootstrapNodeEnrVersionCheck: false,
     ...chainConfig,
   } as P2PConfig & DataStoreConfig;
-  const discoveryService = new DiscV5Service(peerId, config, telemetry);
+  const clientVersion = 'test-reqresp';
+  const discoveryService = new DiscV5Service(peerId, config, clientVersion, telemetry);
   const proofVerifier = new AlwaysTrueCircuitVerifier();
 
   // No bootstrap nodes provided as the libp2p service will register them in the constructor
@@ -258,14 +258,11 @@ export function createBootstrapNodeFromPrivateKey(
  * Create a bootstrap node ENR
  * @param privateKey - the private key of the bootstrap node
  * @param port - the port of the bootstrap node
+ * @param l1ChainId - the L1 Chain ID, defaults to 0
  * @returns the bootstrap node ENR
  */
-export async function getBootstrapNodeEnr(privateKey: string, port: number) {
-  const peerId = await createLibP2PPeerIdFromPrivateKey(privateKey);
-  const enr = SignableENR.createFromPeerId(peerId);
-  const listenAddrUdp = multiaddr(convertToMultiaddr('127.0.0.1', port, 'udp'));
-  enr.setLocationMultiaddr(listenAddrUdp);
-
+export async function getBootstrapNodeEnr(privateKey: string, port: number, l1ChainId = 0) {
+  const { enr } = await createBootnodeENRandPeerId(privateKey, '128.0.0.1', port, l1ChainId);
   return enr;
 }
 

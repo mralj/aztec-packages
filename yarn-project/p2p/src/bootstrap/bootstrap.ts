@@ -49,6 +49,7 @@ export class BootstrapNode implements P2PBootstrapApi {
       p2pIp,
       config.p2pBroadcastPort!,
       config.l1ChainId,
+      this.logger,
     );
     this.peerId = peerId;
 

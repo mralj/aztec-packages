@@ -115,6 +115,7 @@ describe('aztec node', () => {
     const contractSource = mock<ContractDataSource>();
 
     const aztecNodeConfig: AztecNodeConfig = getConfigEnvVars();
+    const clientVersion = 'test-aztec-node';
 
     node = new AztecNodeService(
       {
@@ -138,6 +139,7 @@ describe('aztec node', () => {
       12345,
       rollupVersion.toNumber(),
       globalVariablesBuilder,
+      clientVersion,
       new TestCircuitVerifier(),
     );
   });

@@ -172,6 +172,7 @@ process.on('message', async msg => {
         logger,
       };
 
+      const clientVersion = 'testbench';
       const client = await createP2PClient(
         P2PClientType.Full,
         config as P2PConfig & DataStoreConfig,
@@ -179,6 +180,7 @@ process.on('message', async msg => {
         proofVerifier,
         worldState,
         epochCache,
+        clientVersion,
         telemetry,
         deps,
       );
