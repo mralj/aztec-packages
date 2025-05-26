@@ -65,7 +65,7 @@ export class PeerManager {
     private peerScoring: PeerScoring,
     private reqresp: ReqResp,
     private readonly worldStateSynchronizer: WorldStateSynchronizer,
-    private readonly procolVersion: string,
+    private readonly protocolVersion: string,
   ) {
     this.metrics = new PeerManagerMetrics(telemetryClient, 'PeerManager');
 
@@ -620,7 +620,7 @@ export class PeerManager {
 
   private async exchangeStatusHandshake(peerId: PeerId) {
     const syncSummary = (await this.worldStateSynchronizer.status()).syncSummary;
-    const ourStatus = StatusMessage.fromWorldStateSyncStatus(this.procolVersion, syncSummary);
+    const ourStatus = StatusMessage.fromWorldStateSyncStatus(this.protocolVersion, syncSummary);
 
     const { status, data } = await this.reqresp.sendRequestToPeer(
       peerId,
