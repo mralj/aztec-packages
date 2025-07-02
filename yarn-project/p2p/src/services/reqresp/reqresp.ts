@@ -32,7 +32,6 @@ import {
   type ReqRespSubProtocolValidators,
   type SubProtocolMap,
   responseFromBuffer,
-  subProtocolMap,
 } from './interface.js';
 import { ReqRespMetrics } from './metrics.js';
 import {
@@ -57,7 +56,6 @@ import { ReqRespStatus, ReqRespStatusError, parseStatusChunk, prettyPrintReqResp
  * see: https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/p2p-interface.md#the-reqresp-domain
  */
 export class ReqResp implements ReqRespInterface {
-  private overallRequestTimeoutMs: number;
   private individualRequestTimeoutMs: number;
 
   // Warning, if the `start` function is not called as the parent class constructor, then the default sub protocol handlers will be used ( not good )
@@ -79,7 +77,6 @@ export class ReqResp implements ReqRespInterface {
     rateLimits: Partial<ReqRespSubProtocolRateLimits> = {},
     telemetryClient: TelemetryClient = getTelemetryClient(),
   ) {
-    this.overallRequestTimeoutMs = config.overallRequestTimeoutMs;
     this.individualRequestTimeoutMs = config.individualRequestTimeoutMs;
 
     this.rateLimiter = new RequestResponseRateLimiter(peerScoring, rateLimits);
@@ -179,9 +176,10 @@ export class ReqResp implements ReqRespInterface {
     timeoutMs = 10000,
     maxPeers = Math.max(10, Math.ceil(requests.length / 3)),
     maxRetryAttempts = 3,
-  ): Promise<(InstanceType<SubProtocolMap[SubProtocol]['response']> | undefined)[]> {
-    const responseValidator = this.subProtocolValidators[subProtocol];
-    const responses: (InstanceType<SubProtocolMap[SubProtocol]['response']> | undefined)[] = new Array(requests.length);
+    responseValidator = this.subProtocolValidators[subProtocol],
+  ): Promise<InstanceType<SubProtocolMap[SubProtocol]['response']>[]> {
+    //TODO: validation should be for the batch of transactions, not individual ones
+    const responses: InstanceType<SubProtocolMap[SubProtocol]['response']>[] = new Array(requests.length);
     const requestBuffers = requests.map(req => req.toBuffer());
 
     const requestFunction = async (signal: AbortSignal) => {
@@ -274,10 +272,10 @@ export class ReqResp implements ReqRespInterface {
 
                 if (response && response.data.length > 0) {
                   const object = responseFromBuffer(subProtocol, response.data);
-                  const isValid = await responseValidator(requests[index], object, peer);
-
-                  if (isValid) {
-                    peerResults.push({ index, response: object });
+                  //TODO: (mralj) think about the validation here
+                  const valid = await responseValidator(requests[index], object, peer);
+                  if (valid.length > 0) {
+                    peerResults.push({ index, response: valid });
                   }
                 }
               }
@@ -312,7 +310,7 @@ export class ReqResp implements ReqRespInterface {
     };
 
     try {
-      return await executeTimeout<(InstanceType<SubProtocolMap[SubProtocol]['response']> | undefined)[]>(
+      return await executeTimeout<InstanceType<SubProtocolMap[SubProtocol]['response']>[]>(
         requestFunction,
         timeoutMs,
         () => new CollectiveReqRespTimeoutError(),
@@ -527,11 +525,17 @@ export class ReqResp implements ReqRespInterface {
         }
       }
 
+      if (status !== ReqRespStatus.SUCCESS) {
+        return {
+          status: status ?? ReqRespStatus.UNKNOWN,
+        };
+      }
+
       const messageData = Buffer.concat(chunks);
       const message: Buffer = this.snappyTransform.inboundTransformNoTopic(messageData);
 
       return {
-        status: status ?? ReqRespStatus.UNKNOWN,
+        status,
         data: message,
       };
     } catch (e: any) {

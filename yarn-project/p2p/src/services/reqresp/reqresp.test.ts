@@ -331,9 +331,13 @@ describe('ReqResp', () => {
       const sendRequestToPeerSpy = jest.spyOn(nodes[0].req, 'sendRequestToPeer');
 
       const requests = Array.from({ length: batchSize }, _ => RequestableBuffer.fromBuffer(Buffer.from(`ping`)));
-      const expectResponses = Array.from({ length: batchSize }, _ => RequestableBuffer.fromBuffer(Buffer.from(`pong`)));
+      const expectResponses = Array.from({ length: batchSize }, _ => [
+        RequestableBuffer.fromBuffer(Buffer.from(`pong`)),
+      ]);
 
-      const res = await nodes[0].req.sendBatchRequest(ReqRespSubProtocol.PING, requests, undefined);
+      const res = await nodes[0].req.sendBatchRequest(ReqRespSubProtocol.PING, requests, undefined, 10_000, 10, 3, () =>
+        Promise.resolve([RequestableBuffer.fromBuffer(Buffer.from(`pong`))]),
+      );
       expect(res).toEqual(expectResponses);
 
       // Expect one request to have been sent to each peer
@@ -372,9 +376,17 @@ describe('ReqResp', () => {
       const sendRequestToPeerSpy = jest.spyOn(nodes[0].req, 'sendRequestToPeer');
 
       const requests = times(batchSize, i => RequestableBuffer.fromBuffer(Buffer.from(`ping${i}`)));
-      const expectResponses = times(batchSize, _ => RequestableBuffer.fromBuffer(Buffer.from(`pong`)));
+      const expectResponses = times(batchSize, _ => [RequestableBuffer.fromBuffer(Buffer.from(`pong`))]);
 
-      const res = await nodes[0].req.sendBatchRequest(ReqRespSubProtocol.PING, requests, nodes[1].p2p.peerId);
+      const res = await nodes[0].req.sendBatchRequest(
+        ReqRespSubProtocol.PING,
+        requests,
+        nodes[1].p2p.peerId,
+        10_000,
+        10,
+        3,
+        () => Promise.resolve([RequestableBuffer.fromBuffer(Buffer.from(`pong`))]),
+      );
       expect(res).toEqual(expectResponses);
 
       // Expect pinned peer to have received all requests
@@ -413,11 +425,19 @@ describe('ReqResp', () => {
 
       const requests = Array.from({ length: batchSize }, _ => RequestableBuffer.fromBuffer(Buffer.from(`ping`)));
       // We will fail two of the responses - due to hitting the ping rate limit on the responding nodes
-      const expectResponses = Array.from({ length: batchSize - 2 }, _ =>
+      const expectResponses = Array.from({ length: batchSize - 2 }, _ => [
         RequestableBuffer.fromBuffer(Buffer.from(`pong`)),
-      );
+      ]);
 
-      const res = await nodes[0].req.sendBatchRequest(ReqRespSubProtocol.PING, requests, undefined);
+      const res = await nodes[0].req.sendBatchRequest(
+        ReqRespSubProtocol.PING,
+        requests,
+        undefined,
+        10_000,
+        Math.max(10, Math.ceil(requests.length / 3)),
+        3,
+        () => Promise.resolve([RequestableBuffer.fromBuffer(Buffer.from(`pong`))]),
+      );
       expect(res).toEqual(expectResponses);
 
       // Check that we did detect hitting a rate limit

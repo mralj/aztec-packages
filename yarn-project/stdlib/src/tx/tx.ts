@@ -319,3 +319,16 @@ type HasHash = { /** The tx hash */ hash: TxHash };
 function hasHash(tx: Tx | HasHash): tx is HasHash {
   return (tx as HasHash).hash !== undefined;
 }
+
+export class TxArray extends Array<Tx> {
+  static fromBuffer(buffer: Buffer | BufferReader): TxArray {
+    const reader = BufferReader.asReader(buffer);
+    const txs = reader.readVector(Tx);
+
+    return new TxArray(...txs);
+  }
+
+  public toBuffer(): Buffer {
+    return serializeArrayOfBufferableToVector(this);
+  }
+}

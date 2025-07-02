@@ -330,7 +330,7 @@ describe('ValidatorClient', () => {
       p2pClient.getTxsByHash.mockImplementation(txHashes => Promise.resolve(times(txHashes.length, () => undefined)));
       p2pClient.hasTxsInPool.mockImplementation(txHashes => Promise.resolve(times(txHashes.length, () => false)));
       // Mock the p2pClient.requestTxs to return undefined for all transactions
-      p2pClient.requestTxsByHash.mockImplementation(() => Promise.resolve([undefined]));
+      p2pClient.requestTxsByHash.mockImplementation(() => Promise.resolve([]));
 
       const attestation = await validatorClient.attestToProposal(proposal, sender);
       expect(attestation).toBeUndefined();

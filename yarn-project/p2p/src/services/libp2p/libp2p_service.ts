@@ -473,7 +473,7 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
     protocol: SubProtocol,
     requests: InstanceType<SubProtocolMap[SubProtocol]['request']>[],
     pinnedPeerId: PeerId | undefined,
-  ): Promise<(InstanceType<SubProtocolMap[SubProtocol]['response']> | undefined)[]> {
+  ): Promise<InstanceType<SubProtocolMap[SubProtocol]['response']>[]> {
     return this.reqresp.sendBatchRequest(protocol, requests, pinnedPeerId);
   }
 
@@ -795,27 +795,33 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
    * @param peerId - The peer ID of the peer that sent the tx.
    * @returns True if the tx is valid, false otherwise.
    */
+  //TODO: (mralj) - this is somewhat naive implementation, if single tx is invlid we consider the whole response invalid.
+  // I think we should still extract the valid txs and return them, so that we can still use the response.
   @trackSpan('Libp2pService.validateRequestedTx', (requestedTxHash, _responseTx) => ({
     [Attributes.TX_HASH]: requestedTxHash.toString(),
   }))
-  private async validateRequestedTx(requestedTxHash: TxHash, responseTx: Tx, peerId: PeerId): Promise<boolean> {
+  private async validateRequestedTx(requestedTxHash: TxHash[], responseTx: Tx[], peerId: PeerId): Promise<Tx[]> {
+    const requested = new Set(requestedTxHash.map(h => h.toString()));
+
     const proofValidator = new TxProofValidator(this.proofVerifier);
-    const validProof = await proofValidator.validateTx(responseTx);
+    const valid: Tx[] = [];
 
-    // If the node returns the wrong data, we penalize it
-    if (!requestedTxHash.equals(await responseTx.getTxHash())) {
-      // Returning the wrong data is a low tolerance error
-      this.peerManager.penalizePeer(peerId, PeerErrorSeverity.MidToleranceError);
-      return false;
+    for (const tx of responseTx) {
+      if (!requested.has((await tx.getTxHash()).toString())) {
+        this.peerManager.penalizePeer(peerId, PeerErrorSeverity.MidToleranceError);
+        continue;
+      }
+
+      const { result } = await proofValidator.validateTx(tx);
+      if (result === 'invalid') {
+        this.peerManager.penalizePeer(peerId, PeerErrorSeverity.LowToleranceError);
+        continue;
+      }
+
+      valid.push(tx);
     }
 
-    if (validProof.result === 'invalid') {
-      // If the proof is invalid, but the txHash is correct, then this is an active attack and we severly punish
-      this.peerManager.penalizePeer(peerId, PeerErrorSeverity.LowToleranceError);
-      return false;
-    }
-
-    return true;
+    return valid;
   }
 
   @trackSpan('Libp2pService.validatePropagatedTx', async tx => ({

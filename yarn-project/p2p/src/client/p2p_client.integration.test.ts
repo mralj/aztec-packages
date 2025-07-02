@@ -362,6 +362,7 @@ describe('p2p client integration', () => {
       txPool.getTxByHash.mockImplementationOnce(() => Promise.resolve(tx2));
 
       const requestedTxs = await client1.requestTxsByHash([txHash], undefined);
+
       // Even though we got a response, the proof was deemed invalid
       expect(requestedTxs).toEqual([]);
 
