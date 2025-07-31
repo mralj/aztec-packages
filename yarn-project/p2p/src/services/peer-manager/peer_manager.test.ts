@@ -24,7 +24,7 @@ import { generatePrivateKey } from 'viem/accounts';
 
 import { type P2PConfig, getP2PDefaultConfig } from '../../config.js';
 import { PeerEvent } from '../../types/index.js';
-import { createSecp256k1PeerId, createSecp256k1PrivateKey } from '../../util.js';
+import { type FullLibp2p, createSecp256k1PeerId, createSecp256k1PrivateKey } from '../../util.js';
 import { ReqRespSubProtocol } from '../reqresp/interface.js';
 import { AuthRequest, AuthResponse, GoodByeReason, StatusMessage } from '../reqresp/protocols/index.js';
 import { ReqResp } from '../reqresp/reqresp.js';
@@ -1934,7 +1934,7 @@ describe('PeerManager', () => {
         p2pMaxFailedAuthAttemptsAllowed: 2,
       });
 
-      await peerManager.initializePeers();
+      peerManager.initializePeers();
       await peerManager.heartbeat();
 
       mockReqResp.sendRequestToPeer.mockImplementation(

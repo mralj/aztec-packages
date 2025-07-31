@@ -41,7 +41,13 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { bootstrap } from '@libp2p/bootstrap';
 import { identify } from '@libp2p/identify';
-import { type Message, type PeerId, type PrivateKey, TopicValidatorResult } from '@libp2p/interface';
+import {
+  type Message,
+  type MultiaddrConnection,
+  type PeerId,
+  type PrivateKey,
+  TopicValidatorResult,
+} from '@libp2p/interface';
 import type { ConnectionManager } from '@libp2p/interface-internal';
 import '@libp2p/kad-dht';
 import { tcp } from '@libp2p/tcp';
@@ -225,7 +231,8 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
       createLogger(`${logger.module}:discv5_service`),
     );
 
-    // Seed libp2p's bootstrap discovery with private and trusted peers    const bootstrapNodes = [...config.privatePeers, ...config.trustedPeers];
+    // Seed libp2p's bootstrap discovery with private and trusted peers
+    const bootstrapNodes = [...config.privatePeers, ...config.trustedPeers];
 
     const peerDiscovery = [];
     if (bootstrapNodes.length > 0) {
@@ -252,7 +259,7 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
           addrs: [address],
         };
       })
-      .filter(peer => peer !== undefined);   
+      .filter(peer => peer !== undefined);
     const node = await createLibp2p({
       start: false,
       privateKey,
@@ -295,7 +302,7 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
       },
       connectionMonitor: {
         protocolPrefix: 'aztec',
-	 },
+      },
       connectionGater: {
         denyInboundConnection: (maConn: MultiaddrConnection) => {
           const allowed = peerManager.isNodeAllowedToConnect(maConn.remoteAddr.nodeAddress().address);

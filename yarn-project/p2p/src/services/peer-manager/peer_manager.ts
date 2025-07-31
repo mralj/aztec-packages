@@ -194,25 +194,24 @@ export class PeerManager implements PeerManagerInterface {
     }
 
     const preferredPeersEnrs: ENR[] = this.config.preferredPeers.map(enr => ENR.decodeTxt(enr));
-    await Promise.all(preferredPeersEnrs.map(enr => enr.peerId()))
-      .then(peerIds => peerIds.forEach(peerId => this.preferredPeers.add(peerId.toString())))
-      .catch(e => this.logger.error('Error initializing preferred peers', e));
+    preferredPeersEnrs
+      .map(enr => enr.peerId)
+      .forEach(pid => {
+        this.preferredPeers.add(pid.toString());
+      });
 
-    const directPeers = (
-      await Promise.all(
-        preferredPeersEnrs.map(async enr => {
-          const peerId = await enr.peerId();
-          const address = enr.getLocationMultiaddr('tcp');
-          if (address === undefined) {
-            throw new Error(`Direct peer ${peerId.toString()} has no TCP address, ENR: ${enr.encodeTxt()}`);
-          }
-          return {
-            id: peerId,
-            addrs: [address],
-          };
-        }),
-      )
-    ).filter(peer => peer !== undefined);
+    const directPeers = preferredPeersEnrs
+      .map(enr => {
+        const address = enr.getLocationMultiaddr('tcp');
+        if (address === undefined) {
+          throw new Error(`Direct peer ${enr.peerId.toString()} has no TCP address, ENR: ${enr.encodeTxt()}`);
+        }
+        return {
+          id: enr.peerId,
+          addrs: [address],
+        };
+      })
+      .filter(peer => peer !== undefined);
 
     await Promise.all(
       directPeers.map(peer => {
