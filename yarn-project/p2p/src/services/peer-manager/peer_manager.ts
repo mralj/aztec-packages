@@ -406,7 +406,7 @@ export class PeerManager implements PeerManagerInterface {
    * @param reason - The reason for the goodbye.
    */
   public goodbyeReceived(peerId: PeerId, reason: GoodByeReason) {
-    this.logger.debug(`Goodbye received from peer ${peerId.toString()} with reason ${prettyGoodbyeReason(reason)}`);
+    this.logger.warn(`Goodbye received from peer ${peerId.toString()} with reason ${prettyGoodbyeReason(reason)}`);
 
     this.metrics.recordGoodbyeReceived(reason);
 
@@ -654,7 +654,7 @@ export class PeerManager implements PeerManagerInterface {
   }
 
   private async goodbyeAndDisconnectPeer(peer: PeerId, reason: GoodByeReason) {
-    this.logger.debug(`Disconnecting peer ${peer.toString()} with reason ${prettyGoodbyeReason(reason)}`);
+    this.logger.warn(`Disconnecting peer ${peer.toString()} with reason ${prettyGoodbyeReason(reason)}`);
 
     this.metrics.recordGoodbyeSent(reason);
 

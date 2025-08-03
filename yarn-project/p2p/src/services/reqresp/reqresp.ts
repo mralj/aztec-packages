@@ -409,6 +409,7 @@ export class ReqResp implements ReqRespInterface {
       );
       return resp;
     } catch (e: any) {
+      this.logger.warn(`Error sending request to peer ${peerId.toString()} on sub protocol ${subProtocol}: ${e}`);
       // On error we immediately abort the stream, this is preferred way,
       // because it signals to the sender that error happened, whereas
       // closing the stream only closes our side and is much slower
@@ -482,6 +483,7 @@ export class ReqResp implements ReqRespInterface {
         // In case status is not SUCCESS, we do not expect any data in the response
         // we can return early
         if (status !== ReqRespStatus.SUCCESS) {
+          this.logger.warn(`Read message failed with status: ${status}`);
           return {
             status,
           };
@@ -490,13 +492,16 @@ export class ReqResp implements ReqRespInterface {
 
       const messageData = Buffer.concat(chunks);
       const message: Buffer = this.snappyTransform.inboundTransformNoTopic(messageData);
+      if (status === undefined) {
+        this.logger.warn(`Read message with status: ${status}, data length: ${messageData.length}`);
+      }
 
       return {
         status: status ?? ReqRespStatus.UNKNOWN,
         data: message,
       };
     } catch (e: any) {
-      this.logger.debug(`Reading message failed: ${e.message}`);
+      this.logger.warn(`Reading message failed: ${e.message}`);
 
       let status = ReqRespStatus.UNKNOWN;
       if (e instanceof ReqRespStatusError) {
@@ -547,6 +552,7 @@ export class ReqResp implements ReqRespInterface {
 
       await this.processStream(protocol, incomingStream);
     } catch (err: any) {
+      this.logger.warn(`Error while handling stream for protocol ${protocol}, error ${err}`);
       this.metrics.recordResponseError(protocol);
       this.handleRequestError(err, connection.remotePeer, protocol);
 
