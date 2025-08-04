@@ -1,7 +1,7 @@
 import type { Archiver } from '@aztec/archiver';
 import type { AztecNodeConfig, AztecNodeService } from '@aztec/aztec-node';
-import { retryUntil, sleep } from '@aztec/aztec.js';
-import { ENR, type P2PClient, type P2PService, type PeerId } from '@aztec/p2p';
+import { sleep } from '@aztec/aztec.js';
+import { ENR, type P2PService, type PeerId } from '@aztec/p2p';
 import type { SequencerClient } from '@aztec/sequencer-client';
 import { BlockAttestation, ConsensusPayload } from '@aztec/stdlib/p2p';
 
