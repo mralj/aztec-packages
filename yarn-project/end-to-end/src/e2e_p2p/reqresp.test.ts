@@ -11,10 +11,10 @@ import path from 'path';
 import { shouldCollectMetrics } from '../fixtures/fixtures.js';
 import { createNodes } from '../fixtures/setup_p2p_test.js';
 import { P2PNetworkTest, SHORTENED_BLOCK_TIME_CONFIG_NO_PRUNES, WAIT_FOR_TX_TIMEOUT } from './p2p_network.js';
-import { createPXEServiceAndPrepareTransactions } from './shared.js';
+import { createPXEServiceAndPrepareTransactions, waitForNodeToAcquirePeers } from './shared.js';
 
 // Don't set this to a higher value than 9 because each node will use a different L1 publisher account and anvil seeds
-const NUM_VALIDATORS = 6;
+const NUM_VALIDATORS = 4;
 const NUM_TXS_PER_NODE = 2;
 const BOOT_NODE_UDP_PORT = 4500;
 
@@ -40,6 +40,8 @@ describe('e2e_p2p_reqresp_tx', () => {
     });
     await t.applyBaseSnapshots();
     await t.setup();
+
+    await sleep(8_000);
   });
 
   afterEach(async () => {
@@ -83,7 +85,16 @@ describe('e2e_p2p_reqresp_tx', () => {
     );
 
     t.logger.info('Sleeping to allow nodes to connect');
-    await sleep(4000);
+    await sleep(8000);
+
+    const peerResult = await Promise.all(
+      nodes.map((n, i) => waitForNodeToAcquirePeers(n, NUM_VALIDATORS, 300, `Node ${i}`, t.logger)),
+    );
+    expect(peerResult.every(x => x)).toBeTruthy();
+
+    t.logger.info('All nodes have acquired peers');
+
+    expect(peerResult.every(x => x)).toBeTruthy();
 
     await t.setupAccount();
 

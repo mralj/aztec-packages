@@ -19,6 +19,7 @@ import type { SpamContract } from '@aztec/noir-test-contracts.js/Spam';
 import { TestContract, TestContractArtifact } from '@aztec/noir-test-contracts.js/Test';
 import { PXEService, createPXEService, getPXEServiceConfig as getRpcConfig } from '@aztec/pxe/server';
 import { Offense, OffenseToBigInt } from '@aztec/slasher';
+import type { P2PClient } from '@aztec/stdlib/interfaces/server';
 
 import type { GetContractReturnType } from 'viem';
 
@@ -240,3 +241,25 @@ export async function awaitCommitteeKicked({
   const attestersNextEpoch = await rollup.getAttesters();
   expect(attestersNextEpoch.length).toBe(0);
 }
+
+export const waitForNodeToAcquirePeers = async (
+  node: AztecNodeService,
+  numRequiredPeers: number,
+  timeout: number,
+  identifier: string,
+  logger: Logger,
+) => {
+  return await retryUntil(
+    async () => {
+      const p2pClient = (node as any).p2pClient as P2PClient;
+      const peers = await p2pClient.getPeers();
+      if (peers.length !== numRequiredPeers) {
+        logger.warn(`Got ${peers.length}, expected ${numRequiredPeers} for ${identifier}`);
+      }
+
+      return peers.length === numRequiredPeers;
+    },
+    'Wait for peers',
+    timeout,
+  );
+};

@@ -1,6 +1,6 @@
 import type { Archiver } from '@aztec/archiver';
 import type { AztecNodeConfig, AztecNodeService } from '@aztec/aztec-node';
-import { retryUntil } from '@aztec/aztec.js';
+import { retryUntil, sleep } from '@aztec/aztec.js';
 import { ENR, type P2PClient, type P2PService, type PeerId } from '@aztec/p2p';
 import type { SequencerClient } from '@aztec/sequencer-client';
 import { BlockAttestation, ConsensusPayload } from '@aztec/stdlib/p2p';
@@ -14,7 +14,7 @@ import { shouldCollectMetrics } from '../fixtures/fixtures.js';
 import { type NodeContext, createNodes } from '../fixtures/setup_p2p_test.js';
 import { AlertChecker, type AlertConfig } from '../quality_of_service/alert_checker.js';
 import { P2PNetworkTest, SHORTENED_BLOCK_TIME_CONFIG_NO_PRUNES, WAIT_FOR_TX_TIMEOUT } from './p2p_network.js';
-import { createPXEServiceAndSubmitTransactions } from './shared.js';
+import { createPXEServiceAndSubmitTransactions, waitForNodeToAcquirePeers } from './shared.js';
 
 const CHECK_ALERTS = process.env.CHECK_ALERTS === 'true';
 
@@ -56,27 +56,6 @@ describe('e2e_p2p_preferred_network', () => {
   let nodes: AztecNodeService[];
   let validators: AztecNodeService[];
   let preferredNodes: AztecNodeService[];
-
-  const waitForNodeToAcquirePeers = async (
-    node: AztecNodeService,
-    numRequiredPeers: number,
-    timeout: number,
-    identifier: string,
-  ) => {
-    return await retryUntil(
-      async () => {
-        const p2pClient = (node as any).p2pClient as P2PClient;
-        const peers = await p2pClient.getPeers();
-        if (peers.length !== numRequiredPeers) {
-          t.logger.warn(`Got ${peers.length}, expected ${numRequiredPeers} for ${identifier}`);
-        }
-
-        return peers.length === numRequiredPeers;
-      },
-      'Wait for peers',
-      timeout,
-    );
-  };
 
   // Intercepts all P2P gossip and verifies that it is received from one of a set of expect peers
   const monitorP2PTraffic = (node: AztecNodeService, expectedPeers: string[]) => {
@@ -141,6 +120,8 @@ describe('e2e_p2p_preferred_network', () => {
 
     await t.applyBaseSnapshots();
     await t.setup();
+
+    await sleep(8_000);
   });
 
   afterEach(async () => {
@@ -293,10 +274,16 @@ describe('e2e_p2p_preferred_network', () => {
       .concat(validators.map(() => nodes.length + preferredNodes.length + validatorsUsingDiscovery - 1 + 1)) // Validators connect to all nodes, preferred nodes, validators using discovery and the default node
       .concat(noDiscoveryValidators.map(() => preferredNodes.length)) // The no-discovery validators ONLY connect to preferred nodes (no discovery)
       .concat([nodes.length + validatorsUsingDiscovery]); // The default node connects to other regular nodes and validators using discovery
-    for (let i = 0; i < allNodes.length; i++) {
-      const peerResult = await waitForNodeToAcquirePeers(allNodes[i], expectedPeerCounts[i], 300, identifiers[i]);
-      expect(peerResult).toBeTruthy();
-    }
+
+    t.logger.info('Waiting for nodes to acquire peers');
+    const peerResult = await Promise.all(
+      allNodes.map((_n, i) =>
+        waitForNodeToAcquirePeers(allNodes[i], expectedPeerCounts[i], 300, identifiers[i], t.logger),
+      ),
+    );
+
+    expect(peerResult.every(x => x)).toBeTruthy();
+
     t.logger.info('All node/validator peer connections established');
 
     validators.push(...noDiscoveryValidators);

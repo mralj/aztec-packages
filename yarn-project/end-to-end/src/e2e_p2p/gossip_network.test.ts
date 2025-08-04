@@ -20,7 +20,7 @@ import {
 } from '../fixtures/setup_p2p_test.js';
 import { AlertChecker, type AlertConfig } from '../quality_of_service/alert_checker.js';
 import { P2PNetworkTest, SHORTENED_BLOCK_TIME_CONFIG_NO_PRUNES, WAIT_FOR_TX_TIMEOUT } from './p2p_network.js';
-import { createPXEServiceAndSubmitTransactions } from './shared.js';
+import { createPXEServiceAndSubmitTransactions, waitForNodeToAcquirePeers } from './shared.js';
 
 const CHECK_ALERTS = process.env.CHECK_ALERTS === 'true';
 
@@ -65,6 +65,8 @@ describe('e2e_p2p_network', () => {
 
     await t.applyBaseSnapshots();
     await t.setup();
+
+    await sleep(8_000);
   });
 
   afterEach(async () => {
@@ -122,8 +124,15 @@ describe('e2e_p2p_network', () => {
     );
     await proverNode.start();
 
-    // wait a bit for peers to discover each other
-    await sleep(8000);
+    t.logger.info('Sleeping to allow nodes to connect');
+    await sleep(8_000);
+
+    const peerResult = await Promise.all(
+      nodes.map((n, i) => waitForNodeToAcquirePeers(n, NUM_VALIDATORS + 1, 300, `Node ${i}`, t.logger)),
+    );
+    expect(peerResult.every(x => x)).toBeTruthy();
+
+    t.logger.info('All nodes have acquired peers');
 
     // We need to `createNodes` before we setup account, because
     // those nodes actually form the committee, and so we cannot build
