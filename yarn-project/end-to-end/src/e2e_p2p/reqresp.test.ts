@@ -14,7 +14,7 @@ import { P2PNetworkTest, SHORTENED_BLOCK_TIME_CONFIG_NO_PRUNES, WAIT_FOR_TX_TIME
 import { createPXEServiceAndPrepareTransactions, waitForNodeToAcquirePeers } from './shared.js';
 
 // Don't set this to a higher value than 9 because each node will use a different L1 publisher account and anvil seeds
-const NUM_VALIDATORS = 3;
+const NUM_VALIDATORS = 6;
 const NUM_TXS_PER_NODE = 2;
 const BOOT_NODE_UDP_PORT = 4500;
 
@@ -36,6 +36,7 @@ describe('e2e_p2p_reqresp_tx', () => {
         ...SHORTENED_BLOCK_TIME_CONFIG_NO_PRUNES,
         listenAddress: '127.0.0.1',
         aztecEpochDuration: 64, // stable committee
+        p2pDisableStatusHandshake: true,
       },
     });
     await t.applyBaseSnapshots();
@@ -85,7 +86,7 @@ describe('e2e_p2p_reqresp_tx', () => {
     );
 
     t.logger.info('Sleeping to allow nodes to connect');
-    await sleep(8000);
+    await sleep(60_000);
 
     const peerResult = await Promise.all(
       nodes.map((n, i) => waitForNodeToAcquirePeers(n, NUM_VALIDATORS, 300, `Node ${i}`, t.logger)),
