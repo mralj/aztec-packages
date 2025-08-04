@@ -25,7 +25,7 @@ import { createPXEServiceAndSubmitTransactions, waitForNodeToAcquirePeers } from
 const CHECK_ALERTS = process.env.CHECK_ALERTS === 'true';
 
 // Don't set this to a higher value than 9 because each node will use a different L1 publisher account and anvil seeds
-const NUM_VALIDATORS = 4;
+const NUM_VALIDATORS = 3;
 const NUM_TXS_PER_NODE = 2;
 const BOOT_NODE_UDP_PORT = 4500;
 
