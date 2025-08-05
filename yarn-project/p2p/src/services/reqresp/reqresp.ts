@@ -398,11 +398,12 @@ export class ReqResp implements ReqRespInterface {
       );
 
       const timeoutErr = new IndividualReqRespTimeoutError();
+      const readMessage = this.readMessage.bind(this)(peerId, subProtocol);
       const [_, resp] = await executeTimeout(
         signal =>
           Promise.all([
             pipeline([payload], stream!.sink, { signal }),
-            pipeline(stream!.source, this.readMessage.bind(this), { signal }),
+            pipeline(stream!.source, readMessage, { signal }),
           ]),
         this.individualRequestTimeoutMs,
         () => timeoutErr,
@@ -465,53 +466,61 @@ export class ReqResp implements ReqRespInterface {
    * - The first chunk should contain a control byte, indicating the status of the response see `ReqRespStatus`
    * - The second chunk should contain the response data
    */
-  private async readMessage(source: AsyncIterable<Uint8ArrayList>): Promise<ReqRespResponse> {
-    let status: ReqRespStatus | undefined;
-    const chunks: Uint8Array[] = [];
+  private readMessage(peerId: PeerId, protocol: ReqRespSubProtocol) {
+    return async (source: AsyncIterable<Uint8ArrayList>) => {
+      let status: ReqRespStatus | undefined;
+      const chunks: Uint8Array[] = [];
 
-    try {
-      for await (const chunk of source) {
-        const statusParsed = status !== undefined;
-        if (statusParsed) {
-          chunks.push(chunk.subarray());
-          continue;
+      try {
+        for await (const chunk of source) {
+          const statusParsed = status !== undefined;
+          if (statusParsed) {
+            chunks.push(chunk.subarray());
+            continue;
+          }
+
+          const firstChunkBuffer = chunk.subarray();
+          status = parseStatusChunk(firstChunkBuffer);
+
+          // In case status is not SUCCESS, we do not expect any data in the response
+          // we can return early
+          if (status !== ReqRespStatus.SUCCESS) {
+            this.logger.warn(
+              `Read message failed with status: ${status}, from peer: ${peerId.toString()} on protocol: ${protocol}`,
+            );
+            return {
+              status,
+            };
+          }
         }
 
-        const firstChunkBuffer = chunk.subarray();
-        status = parseStatusChunk(firstChunkBuffer);
-
-        // In case status is not SUCCESS, we do not expect any data in the response
-        // we can return early
-        if (status !== ReqRespStatus.SUCCESS) {
-          this.logger.warn(`Read message failed with status: ${status}`);
-          return {
-            status,
-          };
+        const messageData = Buffer.concat(chunks);
+        const message: Buffer = this.snappyTransform.inboundTransformNoTopic(messageData);
+        if (status === undefined) {
+          this.logger.warn(
+            `Read message with status: ${status}, data length: ${messageData.length}, from peer: ${peerId.toString()} on protocol: ${protocol}`,
+          );
         }
+
+        return {
+          status: status ?? ReqRespStatus.UNKNOWN,
+          data: message,
+        };
+      } catch (e: any) {
+        this.logger.warn(
+          `Reading message failed: ${e.message}, from peer: ${peerId.toString()} on protocol: ${protocol}`,
+        );
+
+        let status = ReqRespStatus.UNKNOWN;
+        if (e instanceof ReqRespStatusError) {
+          status = e.status;
+        }
+
+        return {
+          status,
+        };
       }
-
-      const messageData = Buffer.concat(chunks);
-      const message: Buffer = this.snappyTransform.inboundTransformNoTopic(messageData);
-      if (status === undefined) {
-        this.logger.warn(`Read message with status: ${status}, data length: ${messageData.length}`);
-      }
-
-      return {
-        status: status ?? ReqRespStatus.UNKNOWN,
-        data: message,
-      };
-    } catch (e: any) {
-      this.logger.warn(`Reading message failed: ${e.message}`);
-
-      let status = ReqRespStatus.UNKNOWN;
-      if (e instanceof ReqRespStatusError) {
-        status = e.status;
-      }
-
-      return {
-        status,
-      };
-    }
+    };
   }
 
   /**
