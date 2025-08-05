@@ -34,7 +34,7 @@ function test_cmds {
   for test in "${tests[@]}"; do
     local name=${test#*e2e_}
     name=e2e_${name%.test.ts}
-    echo "$prefix:CPUS=32:MEM=96g:TIMEOUT=40m:NAME=$name sem --id e2e_p2p --fg $run_test_script simple $test"
+    echo "$prefix:CPUS=48:MEM=96g:TIMEOUT=40m:NAME=$name sem --id e2e_p2p --fg $run_test_script simple $test"
   done
 
   # compose-based tests (use running sandbox)
