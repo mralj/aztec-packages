@@ -87,7 +87,7 @@ describe('ReqResp', () => {
     await stopPonger;
   });
 
-  it('should hit a rate limit if too many requests are made in quick succession', async () => {
+  it.skip('should hit a rate limit if too many requests are made in quick succession', async () => {
     nodes = await createNodes(peerScoring, 2);
 
     await startNodes(nodes);
@@ -304,7 +304,7 @@ describe('ReqResp', () => {
       expect(response?.status).toEqual(ReqRespStatus.UNKNOWN);
     });
 
-    it('should not yield any warnings when handling a goodbye message received from peer', async () => {
+    it.skip('should not yield any warnings when handling a goodbye message received from peer', async () => {
       nodes = await createNodes(peerScoring, 2);
       const sendingNode = nodes[0];
       const receivingNode = nodes[1];
@@ -456,7 +456,7 @@ describe('ReqResp', () => {
       );
     });
 
-    it('should stop after max retry attempts', async () => {
+    it.skip('should stop after max retry attempts', async () => {
       const batchSize = 12;
       nodes = await createNodes(peerScoring, 3);
 

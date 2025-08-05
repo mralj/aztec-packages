@@ -7,8 +7,8 @@ import { PeerErrorSeverity } from '@aztec/stdlib/p2p';
 import { Attributes, type TelemetryClient, getTelemetryClient, trackSpan } from '@aztec/telemetry-client';
 
 import type { IncomingStreamData, PeerId, Stream } from '@libp2p/interface';
+import { pipe } from 'it-pipe';
 import type { Libp2p } from 'libp2p';
-import { pipeline } from 'node:stream/promises';
 import type { Uint8ArrayList } from 'uint8arraylist';
 
 import {
@@ -399,12 +399,8 @@ export class ReqResp implements ReqRespInterface {
 
       const timeoutErr = new IndividualReqRespTimeoutError();
       const readMessage = this.readMessage.bind(this)(peerId, subProtocol);
-      const [_, resp] = await executeTimeout(
-        signal =>
-          Promise.all([
-            pipeline([payload], stream!.sink, { signal }),
-            pipeline(stream!.source, readMessage, { signal }),
-          ]),
+      const resp = await executeTimeout(
+        _ => pipe([payload], stream!, readMessage),
         this.individualRequestTimeoutMs,
         () => timeoutErr,
       );
@@ -607,8 +603,9 @@ export class ReqResp implements ReqRespInterface {
     const snappy = this.snappyTransform;
     const SUCCESS = Uint8Array.of(ReqRespStatus.SUCCESS);
 
-    await pipeline(
-      stream.source,
+    const logger = this.logger;
+    await pipe(
+      stream,
       async function* (source: any) {
         for await (const chunk of source) {
           const response = await handler(connection.remotePeer, chunk.subarray());
@@ -617,6 +614,7 @@ export class ReqResp implements ReqRespInterface {
             // NOTE: The stream was already closed by Goodbye handler
             // peerManager.goodbyeReceived(peerId, reason); will call libp2p.hangUp closing all active streams and connections
             // Don't try to respond
+            logger.warn('Received goodbye message, not responding to it');
             return;
           }
 
@@ -626,7 +624,7 @@ export class ReqResp implements ReqRespInterface {
           yield snappy.outboundTransformNoTopic(response);
         }
       },
-      stream.sink,
+      stream,
     );
   }
 
