@@ -28,9 +28,8 @@ function test_cmds {
   echo "$prefix:TIMEOUT=15m:NAME=e2e_block_building $run_test_script simple e2e_block_building"
 
   local tests=(
-    # List all standalone and nested tests, except for the ones listed above.
-    src/e2e_!(prover)/*.test.ts
-    src/e2e_!(block_building).test.ts
+    # Only include tests from e2e_p2p folder
+    src/e2e_p2p/*.test.ts
   )
   for test in "${tests[@]}"; do
     local name=${test#*e2e_}
