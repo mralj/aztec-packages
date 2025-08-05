@@ -657,7 +657,7 @@ export class ReqResp implements ReqRespInterface {
     }
 
     try {
-      await pipeline(function* () {
+      await pipe(function* () {
         yield Uint8Array.of(status);
       }, stream.sink);
 
