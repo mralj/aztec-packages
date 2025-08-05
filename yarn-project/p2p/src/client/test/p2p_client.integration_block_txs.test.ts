@@ -27,7 +27,7 @@ jest.setTimeout(TEST_TIMEOUT);
 
 const NUMBER_OF_PEERS = 2;
 
-describe.skip('p2p client integration block txs protocol ', () => {
+describe('p2p client integration block txs protocol ', () => {
   let txPool: MockProxy<TxPool>;
   let attestationPool: MockProxy<AttestationPool>;
   let epochCache: MockProxy<EpochCache>;
