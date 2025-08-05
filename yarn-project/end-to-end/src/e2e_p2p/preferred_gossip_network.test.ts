@@ -32,7 +32,7 @@ const CHECK_ALERTS = process.env.CHECK_ALERTS === 'true';
 
 // Don't set this to a higher value than 9 because each node will use a different L1 publisher account and anvil seeds
 const NUM_NODES = 2;
-const NUM_VALIDATORS = 3;
+const NUM_VALIDATORS = 2;
 const NUM_PREFERRED_NODES = 2;
 const NUM_TXS_PER_NODE = 2;
 const BOOT_NODE_UDP_PORT = 4500;
@@ -275,7 +275,6 @@ describe('e2e_p2p_preferred_network', () => {
       .concat(noDiscoveryValidators.map(() => preferredNodes.length)) // The no-discovery validators ONLY connect to preferred nodes (no discovery)
       .concat([nodes.length + validatorsUsingDiscovery]); // The default node connects to other regular nodes and validators using discovery
 
-    await sleep(60_000);
     t.logger.info('Waiting for nodes to acquire peers');
     const peerResult = await Promise.all(
       allNodes.map((_n, i) =>

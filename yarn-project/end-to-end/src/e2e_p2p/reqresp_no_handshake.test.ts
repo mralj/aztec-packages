@@ -90,7 +90,7 @@ describe('e2e_p2p_reqresp_tx_no_handshake', () => {
     }
 
     t.logger.info('Sleeping to allow nodes to connect');
-    await sleep(60_000);
+    await sleep(8_000);
 
     const peerResult = await Promise.all(
       nodes.map((n, i) => waitForNodeToAcquirePeers(n, NUM_VALIDATORS, 300, `Node ${i}`, t.logger)),
