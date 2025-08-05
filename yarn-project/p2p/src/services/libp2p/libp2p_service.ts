@@ -301,6 +301,7 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
         maxIncomingPendingConnections: 5,
       },
       connectionMonitor: {
+        enabled: false,
         protocolPrefix: 'aztec',
       },
       connectionGater: {
