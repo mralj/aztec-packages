@@ -40,7 +40,6 @@ import { SignaturePolicy } from '@chainsafe/libp2p-gossipsub/types';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { bootstrap } from '@libp2p/bootstrap';
-import { identify } from '@libp2p/identify';
 import {
   type Message,
   type MultiaddrConnection,
