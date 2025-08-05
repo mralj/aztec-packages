@@ -18,7 +18,7 @@ import { createPXEServiceAndPrepareTransactions, waitForNodeToAcquirePeers } fro
 // Delete this file once we have settled on the cause of the reqresp flakes.
 
 // Don't set this to a higher value than 9 because each node will use a different L1 publisher account and anvil seeds
-const NUM_VALIDATORS = 4;
+const NUM_VALIDATORS = 6;
 const NUM_TXS_PER_NODE = 2;
 const BOOT_NODE_UDP_PORT = 4500;
 
