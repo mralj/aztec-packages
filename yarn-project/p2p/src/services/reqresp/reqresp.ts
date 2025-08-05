@@ -659,7 +659,7 @@ export class ReqResp implements ReqRespInterface {
     }
 
     try {
-      await pipe(function* () {
+      await pipeline(function* () {
         yield Uint8Array.of(status);
       }, stream.sink);
 
