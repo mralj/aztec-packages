@@ -209,7 +209,7 @@ function test {
   [ -z "$tests" ] && num=0 || num=$(echo "$tests" | wc -l)
   echo "Gathered $num tests."
 
-  echo "$tests" | STRICT_SCHEDULING=1 | parallelise
+  echo "$tests" | parallelise
 }
 
 function build {
