@@ -50,9 +50,12 @@ cid=$(docker run -d \
   ${cpuset_arg:-} \
   --cpus=$CPUS \
   --memory=$MEM \
+  --init \
+  --ulimit nofile=262144:262144 \
+  --shm-size=1g \
   --user $(id -u):$(id -g) \
   -v$HOME:$HOME \
-  --mount type=tmpfs,target=/tmp,tmpfs-size=1g \
+  --mount type=tmpfs,target=/tmp,tmpfs-size=4g \
   --workdir $PWD \
   -e HOME \
   -e VERBOSE \
