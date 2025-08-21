@@ -120,40 +120,39 @@ export class PeerManager implements PeerManagerInterface {
    *
    * This function is called when the peer manager is initialized.
    */
-  async initializePeers() {
+  initializePeers() {
     if (this.config.trustedPeers) {
       const trustedPeersEnrs: ENR[] = this.config.trustedPeers.map(enr => ENR.decodeTxt(enr));
-      await Promise.all(trustedPeersEnrs.map(enr => enr.peerId()))
-        .then(peerIds => peerIds.forEach(peerId => this.trustedPeers.add(peerId.toString())))
-        .finally(() => {
-          this.trustedPeersInitialized = true;
-        })
-        .catch(e => this.logger.error('Error initializing trusted peers', e));
+      trustedPeersEnrs
+        .map(enr => enr.peerId)
+        .forEach(pid => {
+          this.trustedPeers.add(pid.toString());
+        });
+      this.trustedPeersInitialized = true;
     }
 
     if (this.config.privatePeers) {
       const privatePeersEnrs: ENR[] = this.config.privatePeers.map(enr => ENR.decodeTxt(enr));
-      await Promise.all(privatePeersEnrs.map(enr => enr.peerId()))
-        .then(peerIds =>
-          peerIds.forEach(peerId => {
-            this.trustedPeers.add(peerId.toString());
-            this.privatePeers.add(peerId.toString());
-          }),
-        )
-        .finally(() => {
-          if (!this.config.trustedPeers) {
-            this.trustedPeersInitialized = true;
-          }
-          this.privatePeersInitialized = true;
-        })
-        .catch(e => this.logger.error('Error initializing private peers', e));
+      privatePeersEnrs
+        .map(enr => enr.peerId)
+        .forEach(pid => {
+          this.trustedPeers.add(pid.toString());
+          this.privatePeers.add(pid.toString());
+        });
+
+      if (!this.config.trustedPeers) {
+        this.trustedPeersInitialized = true;
+      }
+      this.privatePeersInitialized = true;
     }
 
     if (this.config.preferredPeers) {
       const preferredPeersEnrs: ENR[] = this.config.preferredPeers.map(enr => ENR.decodeTxt(enr));
-      await Promise.all(preferredPeersEnrs.map(enr => enr.peerId()))
-        .then(peerIds => peerIds.forEach(peerId => this.preferredPeers.add(peerId.toString())))
-        .catch(e => this.logger.error('Error initializing preferred peers', e));
+      preferredPeersEnrs
+        .map(enr => enr.peerId)
+        .forEach(pid => {
+          this.preferredPeers.add(pid.toString());
+        });
     }
   }
 
@@ -195,14 +194,16 @@ export class PeerManager implements PeerManagerInterface {
     }
 
     const preferredPeersEnrs: ENR[] = this.config.preferredPeers.map(enr => ENR.decodeTxt(enr));
-    await Promise.all(preferredPeersEnrs.map(enr => enr.peerId()))
-      .then(peerIds => peerIds.forEach(peerId => this.preferredPeers.add(peerId.toString())))
-      .catch(e => this.logger.error('Error initializing preferred peers', e));
+    preferredPeersEnrs
+      .map(enr => enr.peerId)
+      .forEach(pid => {
+        this.preferredPeers.add(pid.toString());
+      });
 
     const directPeers = (
       await Promise.all(
         preferredPeersEnrs.map(async enr => {
-          const peerId = await enr.peerId();
+          const peerId = enr.peerId;
           const address = enr.getLocationMultiaddr('tcp');
           if (address === undefined) {
             throw new Error(`Direct peer ${peerId.toString()} has no TCP address, ENR: ${enr.encodeTxt()}`);
@@ -215,15 +216,12 @@ export class PeerManager implements PeerManagerInterface {
       )
     ).filter(peer => peer !== undefined);
 
-    await Promise.all(
-      directPeers.map(peer => {
-        this.libP2PNode.services.pubsub.direct.add(peer.id.toString());
-
-        return this.libP2PNode.peerStore.merge(peer.id, { multiaddrs: peer.addrs });
-      }),
-    );
-
-    this.initializedPreferredPeers = true;
+    directPeers.forEach(peer => {
+      this.libP2PNode.services.pubsub.direct.add(peer.id.toString());
+      const peerForAddress = peer.addrs;
+      this.libP2PNode.peerStore.merge(peer.id, { multiaddrs: peerForAddress });
+    }),
+      (this.initializedPreferredPeers = true);
   }
 
   /**
@@ -719,7 +717,7 @@ export class PeerManager implements PeerManagerInterface {
    */
   private async handleDiscoveredPeer(enr: ENR) {
     // Check that the peer has not already been banned
-    const peerId = await enr.peerId();
+    const peerId = enr.peerId;
     const peerIdString = peerId.toString();
 
     // Don't attempt to connect to peers scheduled for disconnection
@@ -769,7 +767,7 @@ export class PeerManager implements PeerManagerInterface {
     const cachedPeer: CachedPeer = {
       peerId,
       enr,
-      multiaddrTcp,
+      multiaddrTcp: multiaddrTcp as Multiaddr,
       dialAttempts: 0,
       addedUnixMs: this.dateProvider.now(),
     };
@@ -789,11 +787,13 @@ export class PeerManager implements PeerManagerInterface {
     const id = peer.peerId.toString();
 
     // Add to the address book before dialing
-    await this.libP2PNode.peerStore.merge(peer.peerId, { multiaddrs: [peer.multiaddrTcp] });
+    const peerAddress = [peer.multiaddrTcp];
+    await this.libP2PNode.peerStore.merge(peer.peerId, { multiaddrs: peerAddress });
 
     this.logger.trace(`Dialing peer ${id}`);
     try {
-      await this.libP2PNode.dial(peer.multiaddrTcp);
+      const peerAddr: Multiaddr = peer.multiaddrTcp;
+      await this.libP2PNode.dial(peerAddr);
     } catch (error) {
       peer.dialAttempts++;
       if (peer.dialAttempts < MAX_DIAL_ATTEMPTS) {

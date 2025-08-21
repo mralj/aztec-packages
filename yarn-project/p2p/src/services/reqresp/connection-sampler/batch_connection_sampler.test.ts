@@ -1,16 +1,17 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { createSecp256k1PeerId } from '@libp2p/peer-id-factory';
 import type { Libp2p } from 'libp2p';
+import { createSecp256k1PeerId } from '../../../util.js';
 
 import { BatchConnectionSampler } from './batch_connection_sampler.js';
 import { ConnectionSampler, type RandomSampler } from './connection_sampler.js';
+import type { PeerId } from '@libp2p/interface';
 
 describe('BatchConnectionSampler', () => {
   const mockRandomSampler = {
     random: jest.fn(),
   } as jest.Mocked<RandomSampler>;
 
-  let peers: Awaited<ReturnType<typeof createSecp256k1PeerId>>[];
+  let peers: PeerId[];
   let libp2p: jest.Mocked<Libp2p>;
   let connectionSampler: ConnectionSampler;
 
