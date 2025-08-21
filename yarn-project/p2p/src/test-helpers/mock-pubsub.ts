@@ -126,6 +126,8 @@ class MockGossipSubService extends TypedEventEmitter<GossipsubEvents> implements
     score: (_peerId: PeerIdStr) => 0,
   };
 
+  direct = new Set<PeerIdStr>();
+
   publish(topic: TopicStr, data: Uint8Array, _opts?: PublishOpts): Promise<PublishResult> {
     this.logger.debug(`Publishing message on topic ${topic}`, { topic, sender: this.peerId.toString() });
     this.network.publishToPeers(topic, data, this.peerId);
