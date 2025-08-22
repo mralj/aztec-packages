@@ -202,7 +202,7 @@ export class PeerManager implements PeerManagerInterface {
 
     const directPeers = (
       await Promise.all(
-        preferredPeersEnrs.map(async enr => {
+        preferredPeersEnrs.map(enr => {
           const peerId = enr.peerId;
           const address = enr.getLocationMultiaddr('tcp');
           if (address === undefined) {
@@ -216,12 +216,15 @@ export class PeerManager implements PeerManagerInterface {
       )
     ).filter(peer => peer !== undefined);
 
-    directPeers.forEach(peer => {
-      this.libP2PNode.services.pubsub.direct.add(peer.id.toString());
-      const peerForAddress = peer.addrs;
-      this.libP2PNode.peerStore.merge(peer.id, { multiaddrs: peerForAddress });
-    }),
-      (this.initializedPreferredPeers = true);
+    await Promise.all(
+      directPeers.map(peer => {
+        this.libP2PNode.services.pubsub.direct.add(peer.id.toString());
+        const peerForAddress = peer.addrs;
+        return this.libP2PNode.peerStore.merge(peer.id, { multiaddrs: peerForAddress });
+      }),
+    );
+
+    this.initializedPreferredPeers = true;
   }
 
   /**

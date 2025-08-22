@@ -48,7 +48,7 @@ export function injectCommands(program: Command, log: LogFn) {
     .summary('Decodes an ENR record')
     .description('Decodes and ENR record')
     .argument('<enr>', 'The encoded ENR string')
-    .action(async (enr: string) => {
+    .action((enr: string) => {
       printENR(enr, log);
     });
 
