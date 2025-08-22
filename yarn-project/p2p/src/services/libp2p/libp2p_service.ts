@@ -297,7 +297,7 @@ export class LibP2PService<T extends P2PClientType = P2PClientType.Full> extends
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
       connectionMonitor: {
-        protocolPrefix: 'aztec',
+        enabled: false,
       },
       connectionManager: {
         maxConnections: maxPeerCount,
